@@ -1,0 +1,18 @@
+COMP3011 Web Services and Web Data Coursework 1
+
+This project is a basic payment/ordering system that is used for social events. This app will make managing booths in events easier by creating a role based
+model to serve customers easily. The project uses Python Flask and RESTful API.
+
+---
+
+**About this app**
+
+- RESTful API: all requests and responses are JSON.
+- Two roles: **admin** (manages customers, restaurants, menu, orders, and users) and **restaurant** (manages only their own restaurant’s menu and orders).
+- Customers have a balance; orders are paid from that balance. Restaurants can accept or reject orders.
+
+**Getting started**
+
+1. Install dependencies and set up the app (see project docs if needed).
+2. Run the CLI script to create the first admin user.
+3. Use the API at `/api` (e.g. login, then call the endpoints you need).
