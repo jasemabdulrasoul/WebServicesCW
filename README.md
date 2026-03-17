@@ -1,4 +1,4 @@
-COMP3011 Web Services and Web Data Coursework 1
+# COMP3011 Web Services and Web Data Coursework 1
 
 This project is a basic payment/ordering system that is used for social events. This app will make managing booths in events easier by creating a role based
 model to serve customers easily. The project uses Python Flask and RESTful API.
