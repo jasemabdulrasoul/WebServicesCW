@@ -10,5 +10,6 @@ def index():
     return jsonify({"status": "ok", "message": "API is running"}), 200
 
 
-# Register auth routes (login, logout) on api_bp
+# Register route modules on api_bp
 from api import auth  # noqa: E402, F401
+from api import customers  # noqa: E402, F401

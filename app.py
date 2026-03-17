@@ -1,10 +1,8 @@
 """Flask application entrypoint. All API routes are mounted under /api."""
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
 
 from config import Config
-
-db = SQLAlchemy()
+from extensions import db
 
 
 def create_app(config_class=Config):

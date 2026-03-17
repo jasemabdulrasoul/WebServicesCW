@@ -1,7 +1,7 @@
-"""SQLAlchemy models. Import db from app to avoid circular import."""
+"""SQLAlchemy models. Import db from extensions to avoid circular import."""
 from datetime import datetime
 
-from app import db
+from extensions import db
 
 
 class User(db.Model):
