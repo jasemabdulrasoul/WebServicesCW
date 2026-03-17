@@ -17,6 +17,10 @@ def create_app(config_class=Config):
     from api import api_bp
     app.register_blueprint(api_bp)
 
+    with app.app_context():
+        import models  # noqa: F401 - register models with db
+        db.create_all()
+
     return app
 
 

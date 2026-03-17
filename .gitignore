@@ -1,0 +1,25 @@
+# SQLite database (do not commit)
+app.db
+instance/app.db
+instance/*.db
+
+# Environment and secrets
+.env
+.env.local
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+.eggs/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
