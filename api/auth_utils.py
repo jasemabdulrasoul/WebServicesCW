@@ -22,7 +22,7 @@ def check_password(password: str, password_hash: str) -> bool:
 def encode_jwt(user: User) -> str:
     """Build a JWT for the user. Payload: sub=user_id, role, restaurant_id, exp."""
     payload = {
-        "sub": user.id,
+        "sub": str(user.id),
         "role": user.role,
         "restaurant_id": user.restaurant_id,
         "exp": int(time.time()) + current_app.config["JWT_EXPIRE"],
@@ -62,7 +62,11 @@ def load_current_user():
     payload = decode_jwt(token)
     if not payload or "sub" not in payload:
         return False
-    user = User.query.get(payload["sub"])
+    try:
+        user_id = int(payload["sub"])
+    except (TypeError, ValueError):
+        return False
+    user = User.query.get(user_id)
     if not user:
         return False
     g.current_user = user

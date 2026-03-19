@@ -15,3 +15,4 @@ from api import auth  # noqa: E402, F401
 from api import customers  # noqa: E402, F401
 from api import restaurants  # noqa: E402, F401
 from api import menu  # noqa: E402, F401
+from api import transactions  # noqa: E402, F401
