@@ -39,3 +39,7 @@ After you log in on the Home page, your login token is stored in your browser, a
 
 - Login: `POST /api/auth/login`
 - For all protected API requests, include: `Authorization: Bearer <token>`
+
+### API documentation
+
+Full endpoint documentation: `API_DOCUMENTATION.md`
