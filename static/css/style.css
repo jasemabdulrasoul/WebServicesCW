@@ -1,85 +1,145 @@
+/* Theme variables */
+:root {
+  --bg: #f5f7fb;
+  --panel: #ffffff;
+  --text: #0f172a;
+  --muted: #64748b;
+  --border: #e5e7eb;
+  --shadow: 0 8px 24px rgba(2, 6, 23, 0.06);
+  --primary: #2563eb;
+  --primary-2: #1d4ed8;
+  --danger: #b00020;
+  --danger-2: #99121e;
+  --secondary: #e5e7eb;
+}
+
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, Helvetica, sans-serif;
   margin: 0;
-  background: #f6f6f6;
-  color: #111;
+  background: radial-gradient(1000px 600px at 20% -10%, #dbeafe 0%, transparent 50%), var(--bg);
+  color: var(--text);
 }
 
 .topbar {
-  background: #222;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #0b1220;
   color: #fff;
-  padding: 12px 16px;
+  padding: 12px 18px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .nav a {
+  display: inline-block;
   color: #fff;
-  margin-right: 14px;
   text-decoration: none;
+  margin-right: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  transition: background 120ms ease, transform 120ms ease;
 }
 
 .nav a:hover {
-  text-decoration: underline;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.10);
+}
+
+.nav a:active {
+  transform: translateY(1px);
 }
 
 .container {
-  padding: 18px;
+  padding: 22px 18px;
+  max-width: 1100px;
+  margin: 0 auto;
 }
 
 .card {
-  background: #fff;
-  border-radius: 8px;
+  background: var(--panel);
+  border-radius: 12px;
   padding: 16px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+
+h1,
+h2,
+h3 {
+  margin: 0 0 10px;
+}
+
+h1 {
+  font-size: 1.5rem;
 }
 
 .muted {
-  color: #666;
+  color: var(--muted);
 }
 
 .error {
-  color: #b00020;
+  color: var(--danger);
   margin: 10px 0;
+  font-weight: 600;
 }
 
 .status {
   margin: 8px 0 16px;
+  color: var(--muted);
 }
 
 .btn {
-  padding: 8px 12px;
-  border-radius: 6px;
+  padding: 9px 14px;
+  border-radius: 10px;
   border: 1px solid transparent;
   cursor: pointer;
+  font-weight: 600;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
 }
 
 .btn.primary {
-  background: #1a73e8;
+  background: var(--primary);
   color: #fff;
 }
 
+.btn.primary:hover {
+  background: var(--primary-2);
+}
+
 .btn.secondary {
-  background: #ddd;
-  color: #111;
+  background: var(--secondary);
+  color: var(--text);
+  border-color: #d1d5db;
 }
 
 .btn.small {
   padding: 6px 10px;
   font-size: 0.9em;
+  border-radius: 8px;
 }
 
 .btn.danger {
-  background: #b00020;
+  background: var(--danger);
   color: #fff;
+}
+
+.btn.danger:hover {
+  background: var(--danger-2);
 }
 
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 14px;
 }
 
 .menu-row {
@@ -87,7 +147,7 @@ body {
   justify-content: space-between;
   gap: 12px;
   padding: 10px 0;
-  border-top: 1px solid #eee;
+  border-top: 1px solid #eef2f7;
 }
 
 .actions button {
@@ -102,30 +162,75 @@ body {
 
 .auth-info {
   font-size: 0.95em;
+  color: rgba(255, 255, 255, 0.92);
+  white-space: nowrap;
 }
 
 table.table {
   width: 100%;
   border-collapse: collapse;
-  background: #fff;
+  background: transparent;
+}
+
+table.table thead th {
+  font-size: 0.92em;
+  background: #f8fafc;
+  border-bottom: 1px solid var(--border);
+  color: #334155;
 }
 
 table.table th,
 table.table td {
-  padding: 8px 10px;
-  border-bottom: 1px solid #eee;
+  padding: 10px 10px;
+  border-bottom: 1px solid #edf2f7;
   text-align: left;
+}
+
+table.table tbody tr:nth-child(even) td {
+  background: #fcfdff;
+}
+
+table.table tbody tr:hover td {
+  background: #f1f5ff;
+}
+
+form label {
+  display: block;
+  margin: 10px 0 8px;
+  font-weight: 600;
+  font-size: 0.95em;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 16px 0;
 }
 
 input[type="number"],
 input[type="text"],
 input[type="password"],
-select {
+select,
+textarea {
   width: 100%;
   box-sizing: border-box;
-  padding: 6px 8px;
-  border-radius: 6px;
-  border: 1px solid #ddd;
+  padding: 10px 10px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  outline: none;
+}
+
+input:focus,
+select:focus {
+  border-color: rgba(37, 99, 235, 0.7);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+}
+
+@media (max-width: 800px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 

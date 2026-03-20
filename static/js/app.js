@@ -98,6 +98,8 @@ function renderAuthInfo() {
   const payload = getJwtPayload();
   if (!payload) {
     el.textContent = "Not logged in";
+    const logoutBtn = document.getElementById("logout-btn");
+    if (logoutBtn) logoutBtn.style.display = "none";
     const boothsLink = document.getElementById("nav-booths");
     const usersLink = document.getElementById("nav-users");
     if (boothsLink) boothsLink.style.display = "none";
@@ -114,6 +116,9 @@ function renderAuthInfo() {
   const usersLink = document.getElementById("nav-users");
   if (boothsLink) boothsLink.style.display = isAdmin ? "inline-block" : "none";
   if (usersLink) usersLink.style.display = isAdmin ? "inline-block" : "none";
+
+  const logoutBtn = document.getElementById("logout-btn");
+  if (logoutBtn) logoutBtn.style.display = "inline-block";
 }
 
 window.getJwtPayload = getJwtPayload;
