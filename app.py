@@ -1,5 +1,6 @@
 """Flask application entrypoint. All API routes are mounted under /api."""
-from flask import Flask
+from flask import Flask, jsonify, request
+from werkzeug.exceptions import HTTPException
 
 from config import Config
 from extensions import db
@@ -14,6 +15,19 @@ def create_app(config_class=Config):
 
     from api import api_bp
     app.register_blueprint(api_bp)
+
+    # Ensure the API consistently returns JSON errors.
+    @app.errorhandler(HTTPException)
+    def handle_http_exception(e: HTTPException):
+        if request.path.startswith("/api"):
+            return jsonify({"error": e.description}), e.code or 400
+        return e
+
+    @app.errorhandler(Exception)
+    def handle_exception(e: Exception):
+        if request.path.startswith("/api"):
+            return jsonify({"error": "Internal Server Error"}), 500
+        raise
 
     with app.app_context():
         import models  # noqa: F401 - register models with db

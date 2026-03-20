@@ -16,3 +16,10 @@ model to serve customers easily. The project uses Python Flask and RESTful API.
 1. Install dependencies and set up the app (see project docs if needed).
 2. Run the CLI script to create the first admin user.
 3. Use the API at `/api` (e.g. login, then call the endpoints you need).
+
+### Running
+
+1. Install dependencies: `pip install -r requirements.txt`
+2. Create your env file (optional for defaults): copy `.env.example` to `.env`
+3. Create the first admin: `python create_admin.py --username admin --password "your_password"`
+4. Start the server: `python app.py`
