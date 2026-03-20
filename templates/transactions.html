@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>Transactions / Orders</h1>
+
+  <section class="card">
+    <h2>List</h2>
+    <div id="transactions-error" class="error"></div>
+    <div id="transactions-loading" class="muted">Loading...</div>
+
+    <div id="transactions-table" style="display:none;">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Customer</th>
+            <th>Restaurant</th>
+            <th>Amount</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th>Timestamp</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="transactions-tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <script>
+    (function () {
+      const role = (window.getJwtPayload && window.getJwtPayload()?.role) || null;
+      const restaurantId = (window.getJwtPayload && window.getJwtPayload()?.restaurant_id) || null;
+
+      const errorBox = document.getElementById("transactions-error");
+      const loading = document.getElementById("transactions-loading");
+      const tableDiv = document.getElementById("transactions-table");
+      const tbody = document.getElementById("transactions-tbody");
+
+      async function loadTransactions() {
+        errorBox.textContent = "";
+        loading.style.display = "block";
+        tableDiv.style.display = "none";
+
+        // Backend already scopes restaurant users to their restaurant_id.
+        const data = await window.api("/transactions");
+        const txns = data.transactions || [];
+
+        tbody.innerHTML = "";
+        txns.forEach((t) => {
+          const tr = document.createElement("tr");
+          const actionsTd = document.createElement("td");
+          actionsTd.className = "actions";
+
+          const canRestaurantDecide =
+            role === "restaurant" && t.status === "pending" && String(t.restaurant_id) === String(restaurantId);
+
+          if (canRestaurantDecide) {
+            const acceptBtn = document.createElement("button");
+            acceptBtn.className = "btn small";
+            acceptBtn.textContent = "Accept";
+            acceptBtn.onclick = () => updateStatus(t.id, "accepted");
+
+            const rejectBtn = document.createElement("button");
+            rejectBtn.className = "btn small danger";
+            rejectBtn.textContent = "Reject";
+            rejectBtn.onclick = () => updateStatus(t.id, "rejected");
+
+            actionsTd.appendChild(acceptBtn);
+            actionsTd.appendChild(rejectBtn);
+          }
+
+          const canAdminDelete = role === "admin" && t.type === "purchase";
+          if (canAdminDelete) {
+            const delBtn = document.createElement("button");
+            delBtn.className = "btn small danger";
+            delBtn.textContent = "Delete";
+            delBtn.onclick = () => deleteTxn(t.id);
+            actionsTd.appendChild(delBtn);
+          }
+
+          tr.innerHTML = `
+            <td>${t.id}</td>
+            <td>${t.customer_id}</td>
+            <td>${t.restaurant_id}</td>
+            <td>${t.amount}</td>
+            <td>${escapeHtml(t.type)}</td>
+            <td>${escapeHtml(t.status)}</td>
+            <td>${t.timestamp ? escapeHtml(t.timestamp) : ""}</td>
+          `;
+          tr.appendChild(actionsTd);
+          tbody.appendChild(tr);
+        });
+
+        loading.style.display = "none";
+        tableDiv.style.display = "block";
+      }
+
+      async function updateStatus(id, status) {
+        await window.api(`/transactions/${id}`, {
+          method: "PATCH",
+          body: { status: status },
+        });
+        await loadTransactions();
+      }
+
+      async function deleteTxn(id) {
+        if (!confirm("Delete this purchase and revert customer balance?")) return;
+        await window.api(`/transactions/${id}`, { method: "DELETE" });
+        await loadTransactions();
+      }
+
+      loadTransactions().catch((err) => {
+        loading.style.display = "none";
+        tableDiv.style.display = "none";
+        errorBox.textContent = err && err.error ? err.error : "Failed to load transactions.";
+      });
+    })();
+  </script>
+{% endblock %}
+

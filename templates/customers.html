@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>Customers</h1>
+
+  <section class="card">
+    <h2>List</h2>
+    <div id="customers-error" class="error"></div>
+    <div id="customers-loading" class="muted">Loading...</div>
+    <div id="customers-table" style="display:none;">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Balance</th>
+          </tr>
+        </thead>
+        <tbody id="customers-tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card" id="create-customer-section" style="display:none;">
+    <h2>Create Customer (Admin)</h2>
+    <div id="create-customer-error" class="error"></div>
+    <form id="create-customer-form">
+      <label>
+        Name
+        <input name="name" required />
+      </label>
+      <label>
+        Phone
+        <input name="phone" />
+      </label>
+      <button class="btn primary" type="submit">Create</button>
+    </form>
+  </section>
+
+  <script>
+    (function () {
+      function roleFromToken() {
+        const p = window.getJwtPayload && window.getJwtPayload();
+        return p && p.role ? p.role : null;
+      }
+
+      const role = roleFromToken();
+      const createSection = document.getElementById("create-customer-section");
+      if (role === "admin") createSection.style.display = "block";
+
+      const loading = document.getElementById("customers-loading");
+      const table = document.getElementById("customers-table");
+      const errorBox = document.getElementById("customers-error");
+      const tbody = document.getElementById("customers-tbody");
+
+      async function loadCustomers() {
+        try {
+          errorBox.textContent = "";
+          const data = await window.api("/customers");
+          tbody.innerHTML = "";
+          (data.customers || []).forEach((c) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>${c.id}</td>
+              <td>${escapeHtml(c.name)}</td>
+              <td>${c.phone ? escapeHtml(c.phone) : ""}</td>
+              <td>${c.balance}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+          loading.style.display = "none";
+          table.style.display = "block";
+        } catch (err) {
+          loading.style.display = "none";
+          table.style.display = "none";
+          errorBox.textContent = err && err.error ? err.error : "Failed to load customers.";
+        }
+      }
+
+      document.getElementById("create-customer-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const payload = { name: form.name.value.trim(), phone: (form.phone.value || "").trim() || null };
+        try {
+          document.getElementById("create-customer-error").textContent = "";
+          await window.api("/customers", { method: "POST", body: payload, json: true, noContent: false });
+          form.reset();
+          await loadCustomers();
+        } catch (err) {
+          document.getElementById("create-customer-error").textContent = err && err.error ? err.error : "Create failed.";
+        }
+      });
+
+      loadCustomers();
+    })();
+  </script>
+{% endblock %}
+

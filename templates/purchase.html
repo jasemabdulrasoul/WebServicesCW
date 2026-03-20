@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>Create Purchase</h1>
+
+  <section class="card">
+    <h2>Order</h2>
+    <div id="purchase-error" class="error"></div>
+    <form id="purchase-form">
+      <div class="grid">
+        <label>
+          Customer ID
+          <input name="customer_id" type="number" min="1" required />
+        </label>
+
+        <label id="restaurant-select-wrap">
+          Restaurant
+          <select name="restaurant_id"></select>
+        </label>
+      </div>
+
+      <h3>Menu Items</h3>
+      <div id="menu-loading" class="muted">Select restaurant to load menu...</div>
+      <div id="menu-error" class="error"></div>
+      <div id="menu-items" style="display:none;"></div>
+
+      <button class="btn primary" type="submit">Submit Order</button>
+    </form>
+  </section>
+
+  <script>
+    (function () {
+      const role = (window.getJwtPayload && window.getJwtPayload()?.role) || null;
+      const restaurantSelectWrap = document.getElementById("restaurant-select-wrap");
+      const restaurantSelect = document.querySelector("#purchase-form select[name='restaurant_id']");
+
+      if (role === "restaurant") {
+        restaurantSelectWrap.style.display = "none";
+      }
+
+      const purchaseError = document.getElementById("purchase-error");
+      const menuLoading = document.getElementById("menu-loading");
+      const menuError = document.getElementById("menu-error");
+      const menuItemsDiv = document.getElementById("menu-items");
+
+      const state = {
+        restaurants: [],
+        menuItems: [],
+        restaurantId: null,
+      };
+
+      async function loadRestaurants() {
+        const data = await window.api("/restaurants");
+        state.restaurants = data.restaurants || [];
+        return state.restaurants;
+      }
+
+      async function loadMenu(restaurantId) {
+        menuError.textContent = "";
+        menuItemsDiv.style.display = "none";
+        menuLoading.style.display = "block";
+
+        const data = await window.api(`/restaurants/${restaurantId}/menu`);
+        state.menuItems = data.menu_items || [];
+
+        if (state.menuItems.length === 0) {
+          menuLoading.style.display = "none";
+          menuItemsDiv.style.display = "block";
+          menuItemsDiv.innerHTML = "<p class='muted'>No menu items yet.</p>";
+          return;
+        }
+
+        const html = state.menuItems
+          .filter((i) => !i.sold_out)
+          .map((i) => {
+            return `
+              <div class="menu-row">
+                <div>
+                  <b>${escapeHtml(i.name)}</b>
+                  <div class="muted">$${i.price}</div>
+                </div>
+                <div class="menu-qty">
+                  <input type="number" min="0" step="1" value="0" data-menu-item-id="${i.id}" />
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+
+        menuLoading.style.display = "none";
+        menuItemsDiv.style.display = "block";
+        menuItemsDiv.innerHTML = html;
+      }
+
+      async function init() {
+        purchaseError.textContent = "";
+
+        const p = window.getJwtPayload && window.getJwtPayload();
+        if (p && p.restaurant_id && role === "restaurant") {
+          state.restaurantId = p.restaurant_id;
+        }
+
+        if (role !== "restaurant") {
+          await loadRestaurants();
+          restaurantSelect.innerHTML = "";
+          state.restaurants.forEach((r) => {
+            const opt = document.createElement("option");
+            opt.value = r.id;
+            opt.textContent = `${r.name} (ID ${r.id})`;
+            restaurantSelect.appendChild(opt);
+          });
+
+          state.restaurantId = parseInt(restaurantSelect.value, 10);
+          restaurantSelect.addEventListener("change", async (e) => {
+            state.restaurantId = parseInt(e.target.value, 10);
+            await loadMenu(state.restaurantId);
+          });
+        }
+
+        await loadMenu(state.restaurantId);
+      }
+
+      document.getElementById("purchase-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        purchaseError.textContent = "";
+
+        const form = e.target;
+        const customerId = parseInt(form.customer_id.value, 10);
+        const restaurantId = role === "restaurant" ? state.restaurantId : parseInt(form.restaurant_id.value, 10);
+
+        const items = [];
+        menuItemsDiv.querySelectorAll("input[type='number'][data-menu-item-id]").forEach((input) => {
+          const qty = parseInt(input.value, 10);
+          const menuItemId = parseInt(input.getAttribute("data-menu-item-id"), 10);
+          if (qty > 0) items.push({ menu_item_id: menuItemId, quantity: qty });
+        });
+
+        if (items.length === 0) {
+          purchaseError.textContent = "Select at least one menu item quantity > 0.";
+          return;
+        }
+
+        try {
+          await window.api("/transactions", {
+            method: "POST",
+            body: {
+              customer_id: customerId,
+              restaurant_id: restaurantId,
+              items: items,
+            },
+          });
+          alert("Order submitted successfully!");
+          form.reset();
+        } catch (err) {
+          purchaseError.textContent = err && err.error ? err.error : "Failed to submit order.";
+        }
+      });
+
+      init().catch((err) => {
+        purchaseError.textContent = err && err.error ? err.error : "Failed to initialize purchase form.";
+      });
+    })();
+  </script>
+{% endblock %}
+

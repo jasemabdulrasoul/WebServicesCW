@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ title or "Ordering System" }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <nav class="nav">
+        <a href="/">Home</a>
+        <a href="/customers">Customers</a>
+        <a href="/purchase">Purchase</a>
+        <a href="/transactions">Transactions</a>
+      </nav>
+
+      <div class="auth">
+        <div id="auth-info" class="auth-info"></div>
+        <button id="logout-btn" class="btn secondary" type="button" onclick="window.logout && window.logout()">Logout</button>
+      </div>
+    </header>
+
+    <main class="container">
+      <div id="page-status" class="status" role="status"></div>
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>
+

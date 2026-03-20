@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>Booth Ordering System</h1>
+  <p class="muted">API-first app. Login to use the protected endpoints.</p>
+
+  <section class="card">
+    <h2>Login</h2>
+    <form id="login-form">
+      <label>
+        Username
+        <input name="username" autocomplete="username" required />
+      </label>
+      <label>
+        Password
+        <input name="password" type="password" autocomplete="current-password" required />
+      </label>
+      <button class="btn primary" type="submit">Login</button>
+    </form>
+    <div id="login-error" class="error"></div>
+  </section>
+
+  <section class="card">
+    <h2>How to use</h2>
+    <ol>
+      <li>Login using your admin or restaurant account.</li>
+      <li>Go to <b>Customers</b>, <b>Purchase</b>, and <b>Transactions</b>.</li>
+    </ol>
+  </section>
+
+  <script>
+    (function () {
+      const form = document.getElementById("login-form");
+      const errorBox = document.getElementById("login-error");
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        errorBox.textContent = "";
+        try {
+          const username = form.username.value.trim();
+          const password = form.password.value;
+          const res = await window.api("/auth/login", {
+            method: "POST",
+            body: { username, password },
+          });
+          window.setToken(res.token);
+          window.location.href = "/";
+        } catch (err) {
+          errorBox.textContent = (err && err.error) ? err.error : "Login failed.";
+        }
+      });
+    })();
+  </script>
+{% endblock %}
+

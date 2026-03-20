@@ -1,5 +1,5 @@
 """Flask application entrypoint. All API routes are mounted under /api."""
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, render_template, request
 from werkzeug.exceptions import HTTPException
 
 from config import Config
@@ -32,6 +32,23 @@ def create_app(config_class=Config):
     with app.app_context():
         import models  # noqa: F401 - register models with db
         db.create_all()
+
+    # Frontend pages (API remains JSON-only under /api)
+    @app.route("/")
+    def home_page():
+        return render_template("index.html")
+
+    @app.route("/customers")
+    def customers_page():
+        return render_template("customers.html")
+
+    @app.route("/purchase")
+    def purchase_page():
+        return render_template("purchase.html")
+
+    @app.route("/transactions")
+    def transactions_page():
+        return render_template("transactions.html")
 
     return app
 
