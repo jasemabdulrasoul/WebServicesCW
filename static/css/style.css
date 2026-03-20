@@ -104,3 +104,28 @@ body {
   font-size: 0.95em;
 }
 
+table.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+table.table th,
+table.table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+}
+
+input[type="number"],
+input[type="text"],
+input[type="password"],
+select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+}
+
+

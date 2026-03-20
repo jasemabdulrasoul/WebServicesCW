@@ -50,6 +50,14 @@ def create_app(config_class=Config):
     def transactions_page():
         return render_template("transactions.html")
 
+    @app.route("/admin/booths")
+    def booths_admin_page():
+        return render_template("admin_booths.html")
+
+    @app.route("/admin/users")
+    def users_admin_page():
+        return render_template("admin_users.html")
+
     return app
 
 

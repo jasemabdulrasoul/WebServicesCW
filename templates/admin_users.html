@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>Users (Admin)</h1>
+
+  <div id="admin-users-error" class="error"></div>
+
+  <section class="card" id="admin-guard" style="display:none;">
+    <div class="grid">
+      <div>
+        <h2>Manage Users</h2>
+
+        <div id="users-error" class="error"></div>
+        <div id="users-loading" class="muted">Loading...</div>
+
+        <div id="users-table-wrap" style="display:none;">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Restaurant ID</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div>
+        <h2>Create User</h2>
+        <div id="create-user-error" class="error"></div>
+        <form id="create-user-form">
+          <label>
+            Username
+            <input name="username" required />
+          </label>
+          <label>
+            Password
+            <input name="password" type="password" required />
+          </label>
+
+          <label>
+            Role
+            <select id="create-user-role" name="role" required>
+              <option value="admin">admin</option>
+              <option value="restaurant">restaurant</option>
+            </select>
+          </label>
+
+          <div id="restaurant-id-wrap" style="display:none;">
+            <label>
+              Restaurant ID
+              <select name="restaurant_id" id="restaurant-id-select"></select>
+            </label>
+          </div>
+
+          <button class="btn primary" type="submit">Create User</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    (function () {
+      const role = (window.getJwtPayload && window.getJwtPayload()?.role) || null;
+      const guard = document.getElementById("admin-guard");
+      const errorBox = document.getElementById("admin-users-error");
+      if (role !== "admin") {
+        errorBox.textContent = "Admin access required.";
+        return;
+      }
+      guard.style.display = "block";
+
+      const usersError = document.getElementById("users-error");
+      const usersLoading = document.getElementById("users-loading");
+      const usersTableWrap = document.getElementById("users-table-wrap");
+      const usersTbody = document.getElementById("users-tbody");
+
+      const createUserForm = document.getElementById("create-user-form");
+      const createUserError = document.getElementById("create-user-error");
+      const roleSelect = document.getElementById("create-user-role");
+      const restaurantIdWrap = document.getElementById("restaurant-id-wrap");
+      const restaurantIdSelect = document.getElementById("restaurant-id-select");
+
+      const state = {
+        restaurants: [],
+      };
+
+      function syncRoleUI() {
+        const selectedRole = roleSelect.value;
+        restaurantIdWrap.style.display = selectedRole === "restaurant" ? "block" : "none";
+      }
+
+      async function loadRestaurantsForUserForm() {
+        const data = await window.api("/restaurants");
+        state.restaurants = data.restaurants || [];
+
+        restaurantIdSelect.innerHTML = "";
+        state.restaurants.forEach((r) => {
+          const opt = document.createElement("option");
+          opt.value = r.id;
+          opt.textContent = `${r.name} (ID ${r.id})`;
+          restaurantIdSelect.appendChild(opt);
+        });
+      }
+
+      async function loadUsers() {
+        usersError.textContent = "";
+        usersLoading.style.display = "block";
+        usersTableWrap.style.display = "none";
+
+        const data = await window.api("/users");
+        const users = data.users || [];
+
+        usersTbody.innerHTML = "";
+        users.forEach((u) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${u.id}</td>
+            <td>${escapeHtml(u.username)}</td>
+            <td>${escapeHtml(u.role)}</td>
+            <td>${u.restaurant_id === null ? "" : u.restaurant_id}</td>
+            <td>
+              <button class="btn small danger user-delete" data-user-id="${u.id}">Delete</button>
+            </td>
+          `;
+          usersTbody.appendChild(tr);
+        });
+
+        usersLoading.style.display = "none";
+        usersTableWrap.style.display = "block";
+
+        usersTbody.querySelectorAll(".user-delete").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const userId = parseInt(btn.getAttribute("data-user-id"), 10);
+            if (!confirm("Delete this user?")) return;
+            await window.api(`/users/${userId}`, { method: "DELETE" });
+            await loadUsers();
+          });
+        });
+      }
+
+      createUserForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        createUserError.textContent = "";
+
+        const username = e.target.username.value.trim();
+        const password = e.target.password.value;
+        const userRole = e.target.role.value;
+
+        const payload = { username, password, role: userRole };
+        if (userRole === "restaurant") {
+          const rid = e.target.restaurant_id.value;
+          payload.restaurant_id = parseInt(rid, 10);
+        }
+
+        try {
+          await window.api("/users", { method: "POST", body: payload });
+          e.target.reset();
+          syncRoleUI();
+          await loadUsers();
+        } catch (err) {
+          createUserError.textContent = err && err.error ? err.error : "Failed to create user.";
+        }
+      });
+
+      roleSelect.addEventListener("change", syncRoleUI);
+
+      // Init
+      (async () => {
+        syncRoleUI();
+        await loadRestaurantsForUserForm();
+        await loadUsers();
+      })().catch((err) => {
+        usersLoading.style.display = "none";
+        usersTableWrap.style.display = "none";
+        usersError.textContent = err && err.error ? err.error : "Failed to load users.";
+      });
+    })();
+  </script>
+{% endblock %}
+

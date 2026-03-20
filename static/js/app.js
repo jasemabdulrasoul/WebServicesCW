@@ -98,12 +98,22 @@ function renderAuthInfo() {
   const payload = getJwtPayload();
   if (!payload) {
     el.textContent = "Not logged in";
+    const boothsLink = document.getElementById("nav-booths");
+    const usersLink = document.getElementById("nav-users");
+    if (boothsLink) boothsLink.style.display = "none";
+    if (usersLink) usersLink.style.display = "none";
     return;
   }
 
   const role = payload.role ? String(payload.role) : "user";
   const rid = payload.restaurant_id ? String(payload.restaurant_id) : "";
   el.textContent = rid ? `Logged in (${role}, restaurant ${rid})` : `Logged in (${role})`;
+
+  const isAdmin = role === "admin";
+  const boothsLink = document.getElementById("nav-booths");
+  const usersLink = document.getElementById("nav-users");
+  if (boothsLink) boothsLink.style.display = isAdmin ? "inline-block" : "none";
+  if (usersLink) usersLink.style.display = isAdmin ? "inline-block" : "none";
 }
 
 window.getJwtPayload = getJwtPayload;

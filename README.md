@@ -23,3 +23,19 @@ model to serve customers easily. The project uses Python Flask and RESTful API.
 2. Create your env file (optional for defaults): copy `.env.example` to `.env`
 3. Create the first admin: `python create_admin.py --username admin --password "your_password"`
 4. Start the server: `python app.py`
+
+### Web pages (frontend)
+
+- Home: `/`
+- Customers: `/customers`
+- Purchase (place an order): `/purchase`
+- Transactions (view and update order status): `/transactions`
+- Booths (admin): `/admin/booths`
+- Users (admin): `/admin/users`
+
+After you log in on the Home page, your login token is stored in your browser, and the pages will use it to call the `/api` endpoints.
+
+### API authentication (JWT)
+
+- Login: `POST /api/auth/login`
+- For all protected API requests, include: `Authorization: Bearer <token>`

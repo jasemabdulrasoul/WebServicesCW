@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>Booths (Admin)</h1>
+
+  <div id="admin-booths-error" class="error"></div>
+
+  <section class="card" id="admin-guard" style="display:none;">
+    <div class="muted">Manage restaurants and their menu items.</div>
+
+    <h2>Restaurants</h2>
+
+    <div id="restaurants-error" class="error"></div>
+    <div id="restaurants-loading" class="muted">Loading...</div>
+
+    <div style="margin-bottom: 12px;">
+      <label>
+        Select Restaurant
+        <select id="restaurants-select"></select>
+      </label>
+    </div>
+
+    <div class="grid">
+      <div>
+        <h3>Update Restaurant</h3>
+        <label>
+          Restaurant name
+          <input id="restaurant-name-input" />
+        </label>
+        <button class="btn primary" type="button" id="update-restaurant-btn">Save Restaurant</button>
+      </div>
+
+      <div>
+        <h3>Add Restaurant</h3>
+        <div id="create-restaurant-error" class="error"></div>
+        <form id="create-restaurant-form">
+          <label>
+            Name
+            <input name="name" required />
+          </label>
+          <button class="btn primary" type="submit">Add</button>
+        </form>
+      </div>
+    </div>
+
+    <hr />
+
+    <h2>Menu Items</h2>
+
+    <div class="grid">
+      <div>
+        <h3>Add Menu Item</h3>
+        <div id="add-menu-error" class="error"></div>
+        <form id="add-menu-form">
+          <label>
+            Name
+            <input name="name" required />
+          </label>
+          <label>
+            Price
+            <input name="price" type="number" step="0.01" min="0" required />
+          </label>
+          <label style="display:flex; gap:10px; align-items:center;">
+            <input name="sold_out" type="checkbox" />
+            Sold out
+          </label>
+          <button class="btn primary" type="submit">Add Menu Item</button>
+        </form>
+      </div>
+
+      <div>
+        <h3>Menu Items for Selected Restaurant</h3>
+        <div id="menu-error" class="error"></div>
+        <div id="menu-loading" class="muted">Select a restaurant to load menu...</div>
+        <div id="menu-table-wrap" style="display:none;">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Price</th>
+                <th>Sold out</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="menu-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    (function () {
+      const role = (window.getJwtPayload && window.getJwtPayload()?.role) || null;
+      const guard = document.getElementById("admin-guard");
+      const errorBox = document.getElementById("admin-booths-error");
+      if (role !== "admin") {
+        errorBox.textContent = "Admin access required.";
+        return;
+      }
+      guard.style.display = "block";
+
+      const restaurantsLoading = document.getElementById("restaurants-loading");
+      const restaurantsError = document.getElementById("restaurants-error");
+      const restaurantsSelect = document.getElementById("restaurants-select");
+      const restaurantNameInput = document.getElementById("restaurant-name-input");
+      const updateRestaurantBtn = document.getElementById("update-restaurant-btn");
+      const createRestaurantForm = document.getElementById("create-restaurant-form");
+      const createRestaurantError = document.getElementById("create-restaurant-error");
+
+      const menuError = document.getElementById("menu-error");
+      const menuLoading = document.getElementById("menu-loading");
+      const menuTableWrap = document.getElementById("menu-table-wrap");
+      const menuTbody = document.getElementById("menu-tbody");
+      const addMenuForm = document.getElementById("add-menu-form");
+      const addMenuError = document.getElementById("add-menu-error");
+
+      const state = {
+        restaurants: [],
+        selectedRestaurantId: null,
+      };
+
+      async function loadRestaurants() {
+        restaurantsError.textContent = "";
+        restaurantsLoading.style.display = "block";
+        const data = await window.api("/restaurants");
+        state.restaurants = data.restaurants || [];
+
+        restaurantsSelect.innerHTML = "";
+        state.restaurants.forEach((r) => {
+          const opt = document.createElement("option");
+          opt.value = r.id;
+          opt.textContent = `${r.name} (ID ${r.id})`;
+          restaurantsSelect.appendChild(opt);
+        });
+
+        restaurantsLoading.style.display = "none";
+        if (state.restaurants.length > 0) {
+          state.selectedRestaurantId = parseInt(restaurantsSelect.value, 10);
+          restaurantNameInput.value = state.restaurants[0].name;
+          await loadMenu(state.selectedRestaurantId);
+        } else {
+          menuLoading.textContent = "No restaurants yet. Add one to create a menu.";
+          menuTableWrap.style.display = "none";
+        }
+      }
+
+      async function loadMenu(restaurantId) {
+        menuError.textContent = "";
+        menuLoading.style.display = "block";
+        menuTableWrap.style.display = "none";
+        menuLoading.textContent = "Loading menu...";
+
+        const data = await window.api(`/restaurants/${restaurantId}/menu`);
+        const items = data.menu_items || [];
+
+        menuTbody.innerHTML = "";
+        if (items.length === 0) {
+          menuLoading.textContent = "No menu items yet.";
+          menuTableWrap.style.display = "none";
+          return;
+        }
+
+        items.forEach((i) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${i.id}</td>
+            <td><input class="mi-name" data-mi-id="${i.id}" value="${escapeHtml(i.name)}" /></td>
+            <td><input class="mi-price" data-mi-id="${i.id}" type="number" step="0.01" min="0" value="${i.price}" /></td>
+            <td style="text-align:center;"><input class="mi-soldout" data-mi-id="${i.id}" type="checkbox" ${i.sold_out ? "checked" : ""} /></td>
+            <td>
+              <button class="btn small primary mi-save" data-mi-id="${i.id}">Save</button>
+              <button class="btn small danger mi-delete" data-mi-id="${i.id}">Delete</button>
+            </td>
+          `;
+          menuTbody.appendChild(tr);
+        });
+
+        menuLoading.style.display = "none";
+        menuTableWrap.style.display = "block";
+
+        // Wire up buttons after render.
+        menuTbody.querySelectorAll(".mi-save").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const menuId = parseInt(btn.getAttribute("data-mi-id"), 10);
+            const name = menuTbody.querySelector(`.mi-name[data-mi-id='${menuId}']`).value.trim();
+            const price = parseFloat(menuTbody.querySelector(`.mi-price[data-mi-id='${menuId}']`).value);
+            const soldOut = menuTbody.querySelector(`.mi-soldout[data-mi-id='${menuId}']`).checked;
+
+            if (!name) {
+              menuError.textContent = "Menu item name cannot be empty.";
+              return;
+            }
+            if (Number.isNaN(price) || price <= 0) {
+              menuError.textContent = "Price must be a positive number.";
+              return;
+            }
+
+            await window.api(`/restaurants/${restaurantId}/menu/${menuId}`, {
+              method: "PATCH",
+              body: { name, price, sold_out: soldOut },
+            });
+            await loadMenu(restaurantId);
+          });
+        });
+
+        menuTbody.querySelectorAll(".mi-delete").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const menuId = parseInt(btn.getAttribute("data-mi-id"), 10);
+            if (!confirm("Delete this menu item?")) return;
+            await window.api(`/restaurants/${restaurantId}/menu/${menuId}`, { method: "DELETE" });
+            await loadMenu(restaurantId);
+          });
+        });
+      }
+
+      restaurantsSelect.addEventListener("change", async (e) => {
+        state.selectedRestaurantId = parseInt(e.target.value, 10);
+        const r = state.restaurants.find((x) => x.id === state.selectedRestaurantId);
+        if (r) restaurantNameInput.value = r.name;
+        await loadMenu(state.selectedRestaurantId);
+      });
+
+      updateRestaurantBtn.addEventListener("click", async () => {
+        const restaurantId = state.selectedRestaurantId;
+        if (!restaurantId) return;
+        await window.api(`/restaurants/${restaurantId}`, {
+          method: "PATCH",
+          body: { name: restaurantNameInput.value.trim() },
+        });
+        await loadRestaurants();
+        // Restore selection quickly.
+        restaurantsSelect.value = String(restaurantId);
+        state.selectedRestaurantId = restaurantId;
+        await loadMenu(restaurantId);
+      });
+
+      createRestaurantForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        createRestaurantError.textContent = "";
+        const name = e.target.name.value.trim();
+        if (!name) return;
+        try {
+          await window.api("/restaurants", { method: "POST", body: { name } });
+          e.target.reset();
+          await loadRestaurants();
+        } catch (err) {
+          createRestaurantError.textContent = err && err.error ? err.error : "Failed to create restaurant.";
+        }
+      });
+
+      addMenuForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        addMenuError.textContent = "";
+        const restaurantId = state.selectedRestaurantId;
+        if (!restaurantId) return;
+
+        const name = e.target.name.value.trim();
+        const price = parseFloat(e.target.price.value);
+        const soldOut = !!e.target.sold_out.checked;
+
+        if (!name) {
+          addMenuError.textContent = "Menu item name is required.";
+          return;
+        }
+        if (Number.isNaN(price) || price <= 0) {
+          addMenuError.textContent = "Price must be a positive number.";
+          return;
+        }
+
+        try {
+          await window.api(`/restaurants/${restaurantId}/menu`, {
+            method: "POST",
+            body: { name, price, sold_out: soldOut },
+          });
+          e.target.reset();
+          await loadMenu(restaurantId);
+        } catch (err) {
+          addMenuError.textContent = err && err.error ? err.error : "Failed to add menu item.";
+        }
+      });
+
+      loadRestaurants().catch((err) => {
+        restaurantsLoading.style.display = "none";
+        restaurantsError.textContent = err && err.error ? err.error : "Failed to load restaurants.";
+      });
+    })();
+  </script>
+{% endblock %}
+
