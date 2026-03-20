@@ -394,8 +394,11 @@ Response (`200`): updated transaction object
 Auth: `admin` only
 
 Rules:
-- only `type = "purchase"`
-- adds the purchase amount back to the customer balance
+- supported `type` values: `purchase`, `balance_add`, `balance_withdraw`
+- reverses the balance change applied when the transaction was created
+  - `purchase`: adds the amount back to customer balance
+  - `balance_add`: subtracts the amount from customer balance
+  - `balance_withdraw`: adds the amount back to customer balance
 - deletes the transaction record
 
 Response (`200`):

@@ -69,12 +69,14 @@
             actionsTd.appendChild(rejectBtn);
           }
 
-          const canAdminDelete = role === "admin" && t.type === "purchase";
+          // Admin can delete purchase transactions and balance_add transactions
+          // regardless of current status. Backend enforces allowed types.
+          const canAdminDelete = role === "admin" && (String(t.type) === "purchase" || String(t.type) === "balance_add");
           if (canAdminDelete) {
             const delBtn = document.createElement("button");
             delBtn.className = "btn small danger";
             delBtn.textContent = "Delete";
-            delBtn.onclick = () => deleteTxn(t.id);
+            delBtn.onclick = () => deleteTxn(t);
             actionsTd.appendChild(delBtn);
           }
 
@@ -103,9 +105,14 @@
         await loadTransactions();
       }
 
-      async function deleteTxn(id) {
-        if (!confirm("Delete this purchase and revert customer balance?")) return;
-        await window.api(`/transactions/${id}`, { method: "DELETE" });
+      async function deleteTxn(txn) {
+        const type = txn && txn.type ? String(txn.type) : "";
+        let msg = "Delete this transaction and revert the balance change?";
+        if (type === "purchase") msg = "Delete this purchase and revert customer balance?";
+        if (type === "balance_add") msg = "Delete this balance add and revert customer balance?";
+
+        if (!confirm(msg)) return;
+        await window.api(`/transactions/${txn.id}`, { method: "DELETE" });
         await loadTransactions();
       }
 

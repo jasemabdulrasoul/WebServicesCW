@@ -14,6 +14,7 @@
             <th>Name</th>
             <th>Phone</th>
             <th>Balance</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody id="customers-tbody"></tbody>
@@ -33,7 +34,27 @@
         Phone
         <input name="phone" />
       </label>
+      <label>
+        Initial Balance
+        <input name="balance" type="number" step="0.01" min="0" value="0" />
+      </label>
       <button class="btn primary" type="submit">Create</button>
+    </form>
+  </section>
+
+  <section class="card" id="add-balance-section" style="display:none;">
+    <h2>Add Balance (Admin)</h2>
+    <div id="add-balance-error" class="error"></div>
+    <form id="add-balance-form">
+      <label>
+        Customer ID
+        <input name="customer_id" type="number" min="1" required />
+      </label>
+      <label>
+        Amount
+        <input name="amount" type="number" step="0.01" min="0.01" required />
+      </label>
+      <button class="btn primary" type="submit">Add Balance</button>
     </form>
   </section>
 
@@ -47,6 +68,8 @@
       const role = roleFromToken();
       const createSection = document.getElementById("create-customer-section");
       if (role === "admin") createSection.style.display = "block";
+      const addBalanceSection = document.getElementById("add-balance-section");
+      if (role === "admin") addBalanceSection.style.display = "block";
 
       const loading = document.getElementById("customers-loading");
       const table = document.getElementById("customers-table");
@@ -65,8 +88,28 @@
               <td>${escapeHtml(c.name)}</td>
               <td>${c.phone ? escapeHtml(c.phone) : ""}</td>
               <td>${c.balance}</td>
+              <td>
+                ${
+                  role === "admin"
+                    ? `<button class="btn small danger customer-delete" type="button" data-customer-id="${c.id}">Delete</button>`
+                    : ""
+                }
+              </td>
             `;
             tbody.appendChild(tr);
+
+            if (role === "admin") {
+              const btn = tr.querySelector(".customer-delete");
+              btn.addEventListener("click", async () => {
+                if (!confirm(`Delete customer ${c.name} (ID ${c.id})?`)) return;
+                try {
+                  await window.api(`/customers/${c.id}`, { method: "DELETE" });
+                  await loadCustomers();
+                } catch (err) {
+                  errorBox.textContent = err && err.error ? err.error : "Failed to delete customer.";
+                }
+              });
+            }
           });
           loading.style.display = "none";
           table.style.display = "block";
@@ -80,14 +123,61 @@
       document.getElementById("create-customer-form").addEventListener("submit", async (e) => {
         e.preventDefault();
         const form = e.target;
+        const initialBalanceRaw = form.balance.value;
+        const initialBalance = parseFloat((initialBalanceRaw === "" || initialBalanceRaw === null) ? "0" : initialBalanceRaw);
+
         const payload = { name: form.name.value.trim(), phone: (form.phone.value || "").trim() || null };
         try {
           document.getElementById("create-customer-error").textContent = "";
-          await window.api("/customers", { method: "POST", body: payload, json: true, noContent: false });
+
+          if (Number.isNaN(initialBalance) || initialBalance < 0) {
+            document.getElementById("create-customer-error").textContent = "Initial balance must be 0 or a positive number.";
+            return;
+          }
+
+          const created = await window.api("/customers", { method: "POST", body: payload, json: true, noContent: false });
           form.reset();
+
+          // If the user entered an initial balance, apply it using the admin balance endpoint.
+          if (initialBalance > 0) {
+            await window.api(`/customers/${created.id}/balance`, {
+              method: "POST",
+              body: { amount: initialBalance, action: "add" },
+            });
+          }
           await loadCustomers();
         } catch (err) {
           document.getElementById("create-customer-error").textContent = err && err.error ? err.error : "Create failed.";
+        }
+      });
+
+      document.getElementById("add-balance-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const errorEl = document.getElementById("add-balance-error");
+        errorEl.textContent = "";
+
+        const customerId = parseInt(form.customer_id.value, 10);
+        const amount = parseFloat(form.amount.value);
+
+        if (!Number.isInteger(customerId) || customerId <= 0) {
+          errorEl.textContent = "Customer ID must be a positive integer.";
+          return;
+        }
+        if (Number.isNaN(amount) || amount <= 0) {
+          errorEl.textContent = "Amount must be a positive number.";
+          return;
+        }
+
+        try {
+          await window.api(`/customers/${customerId}/balance`, {
+            method: "POST",
+            body: { amount: amount, action: "add" },
+          });
+          form.reset();
+          await loadCustomers();
+        } catch (err) {
+          errorEl.textContent = err && err.error ? err.error : "Failed to add balance.";
         }
       });
 

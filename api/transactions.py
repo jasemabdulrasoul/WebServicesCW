@@ -186,18 +186,32 @@ def update_transaction_status(transaction_id: int):
 @api_bp.route("/transactions/<int:transaction_id>", methods=["DELETE"])
 @require_admin
 def delete_transaction(transaction_id: int):
-    """DELETE /api/transactions/<id> — admin only; purchase only; revert customer balance."""
+    """DELETE /api/transactions/<id> — admin only; revert customer balance for supported types."""
     txn = Transaction.query.get(transaction_id)
     if not txn:
         return jsonify({"error": "Transaction not found"}), 404
-    if txn.type != "purchase":
-        return jsonify({"error": "Only purchase transactions can be deleted"}), 400
+    if txn.type not in {"purchase", "balance_add", "balance_withdraw"}:
+        return jsonify({"error": "Only purchase and balance transactions can be deleted"}), 400
 
     customer = Customer.query.get(txn.customer_id)
     if not customer:
         return jsonify({"error": "Customer for this transaction not found"}), 404
 
-    customer.balance += txn.amount
+    # Revert the balance change applied when the transaction was created.
+    # - purchase: deducted from balance => add back
+    # - balance_add: added to balance => subtract
+    # - balance_withdraw: deducted from balance => add back
+    if txn.type == "purchase":
+        delta = txn.amount
+    elif txn.type == "balance_add":
+        delta = -txn.amount
+    else:  # balance_withdraw
+        delta = txn.amount
+
+    if customer.balance + delta < 0:
+        return jsonify({"error": "Insufficient balance to revert transaction"}), 400
+
+    customer.balance += delta
     db.session.delete(txn)
     db.session.commit()
     return jsonify({"message": "Transaction deleted and balance reverted"}), 200
